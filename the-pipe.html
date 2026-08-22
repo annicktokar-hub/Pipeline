@@ -1,0 +1,1259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Pipe</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#14161a;
+    --bg2:#1b1e24;
+    --steel-hi:#9aa3ad;
+    --steel:#5b6570;
+    --steel-lo:#262b31;
+    --text:#e8eaed;
+    --dim:#8b93a0;
+    --line:#2a2f37;
+    --red:#e11d2e;
+    --orange:#f97316;
+    --yellow:#eab308;
+    --green:#22c55e;
+    --blue:#38bdf8;
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0;height:100%;background:var(--bg);
+    font-family:'IBM Plex Mono',monospace;color:var(--text);
+    overflow:hidden;
+  }
+  .display{font-family:'Space Grotesk',sans-serif;}
+
+  #app{
+    display:flex;flex-direction:column;height:100vh;width:100vw;
+  }
+
+  header{
+    padding:14px 18px 10px;
+    border-bottom:1px solid var(--line);
+    background:linear-gradient(180deg,#181b20,#14161a);
+    flex-shrink:0;
+  }
+  header h1{
+    margin:0;font-size:22px;letter-spacing:0.5px;font-weight:700;
+  }
+  header h1 span{color:var(--dim);font-weight:500;font-size:13px;display:block;margin-top:2px;letter-spacing:0.3px;}
+
+  #controls{
+    display:flex;flex-wrap:wrap;gap:10px;align-items:center;
+    padding:12px 18px;border-bottom:1px solid var(--line);
+    background:var(--bg2);flex-shrink:0;
+  }
+  #controls input[type=text]{
+    flex:1 1 160px;min-width:120px;
+    background:var(--steel-lo);border:1px solid var(--line);color:var(--text);
+    padding:9px 10px;border-radius:6px;font-family:'IBM Plex Mono',monospace;font-size:13px;
+  }
+  #controls input[type=date]{
+    background:var(--steel-lo);border:1px solid var(--line);color:var(--text);
+    padding:8px 8px;border-radius:6px;font-family:'IBM Plex Mono',monospace;font-size:13px;
+    color-scheme:dark;
+  }
+  .size-picker{display:flex;gap:6px;align-items:flex-end;background:var(--steel-lo);
+    border:1px solid var(--line);border-radius:6px;padding:6px 10px;}
+  .size-btn{
+    width:14px;height:14px;border-radius:50%;background:var(--steel);border:2px solid transparent;
+    cursor:pointer;transition:transform .15s ease;
+  }
+  .size-btn:nth-child(1){width:12px;height:12px;}
+  .size-btn:nth-child(2){width:18px;height:18px;}
+  .size-btn:nth-child(3){width:24px;height:24px;}
+  .size-btn:nth-child(4){width:32px;height:32px;}
+  .size-btn.active{background:var(--blue);border-color:#bfe9fb;transform:scale(1.05);}
+  #addBtn{
+    background:var(--blue);color:#062430;border:none;font-weight:700;
+    padding:10px 16px;border-radius:6px;cursor:pointer;font-family:'Space Grotesk',sans-serif;font-size:13px;
+    letter-spacing:0.3px;
+  }
+  #addBtn:active{transform:translateY(1px);}
+  .secondary-btn{
+    background:transparent;color:var(--dim);border:1px solid var(--line);font-weight:700;
+    padding:9px 14px;border-radius:6px;cursor:pointer;font-size:12px;letter-spacing:0.3px;
+    transition:color .15s ease, border-color .15s ease;
+  }
+  .secondary-btn:hover{color:var(--text);border-color:var(--steel);}
+  .secondary-btn:active{transform:translateY(1px);}
+
+  #shippedPanel{
+    position:absolute;top:0;right:-320px;width:300px;height:100%;
+    background:#181b20e6;backdrop-filter:blur(4px);
+    border-left:1px solid var(--line);
+    transition:right .25s ease;z-index:20;
+    display:flex;flex-direction:column;
+  }
+  #shippedPanel.open{right:0;}
+  .shippedHeader{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:14px 16px;border-bottom:1px solid var(--line);font-size:14px;
+  }
+  .shippedHeader button{
+    background:none;border:none;color:var(--dim);font-size:14px;cursor:pointer;
+  }
+  .shippedHeader button:hover{color:var(--text);}
+  #shippedList{overflow-y:auto;padding:8px 12px;flex:1;}
+  .shippedRow{
+    display:flex;align-items:center;gap:8px;padding:8px 4px;border-bottom:1px solid var(--line);
+    font-size:12px;
+  }
+  .shippedTitle{flex:1;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .shippedSize{color:var(--dim);font-size:10px;border:1px solid var(--line);border-radius:3px;padding:1px 5px;}
+  .shippedTime{color:var(--dim);font-size:10px;min-width:58px;text-align:right;}
+  .shippedEmpty{color:var(--dim);font-size:12px;padding:20px 4px;text-align:center;}
+  .shippedRow{cursor:pointer;}
+  .shippedRow:hover{background:rgba(255,255,255,0.03);}
+
+  #moreControls{
+    max-height:0;overflow:hidden;display:flex;gap:10px;padding:0 18px;
+    background:var(--bg2);border-bottom:0 solid var(--line);
+    transition:max-height .2s ease, padding .2s ease;
+  }
+  #moreControls.open{max-height:70px;padding:10px 18px 12px;border-bottom-width:1px;}
+  #moreControls input{
+    flex:1 1 160px;min-width:120px;
+    background:var(--steel-lo);border:1px solid var(--line);color:var(--text);
+    padding:9px 10px;border-radius:6px;font-family:'IBM Plex Mono',monospace;font-size:13px;
+  }
+
+  #detailModal{
+    position:absolute;inset:0;z-index:30;display:none;align-items:center;justify-content:center;
+  }
+  #detailModal.open{display:flex;}
+  #detailBackdrop{position:absolute;inset:0;background:rgba(6,7,9,0.65);}
+  #detailCard{
+    position:relative;width:min(340px, 88%);max-height:80%;overflow-y:auto;
+    background:#1b1e24;border:1px solid var(--line);border-radius:10px;
+    padding:16px 18px 18px;box-shadow:0 20px 50px rgba(0,0,0,0.5);
+  }
+  .detailHeader{display:flex;align-items:center;gap:8px;margin-bottom:12px;}
+  .detailHeader .dot{width:11px;height:11px;flex-shrink:0;}
+  #detailTitleInput{
+    flex:1;font-size:16px;line-height:1.3;background:transparent;border:none;color:var(--text);
+    font-family:'Space Grotesk',sans-serif;font-weight:700;padding:4px 2px;border-radius:4px;
+    min-width:0;
+  }
+  #detailTitleInput:focus{outline:none;background:var(--steel-lo);}
+  .detailHeader button{background:none;border:none;color:var(--dim);font-size:14px;cursor:pointer;flex-shrink:0;}
+  .detailHeader button:hover{color:var(--text);}
+  .detailRow{
+    display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 0;
+    border-bottom:1px solid var(--line);font-size:12px;
+  }
+  .detailLabel{color:var(--dim);flex-shrink:0;}
+  .detailRow #detailSizePicker{padding:4px 8px;}
+  .detailRow input[type=date]{
+    background:var(--steel-lo);border:1px solid var(--line);color:var(--text);
+    padding:6px 8px;border-radius:6px;font-family:'IBM Plex Mono',monospace;font-size:12px;color-scheme:dark;
+  }
+  .detailEditGroup{display:flex;gap:6px;align-items:center;flex:1;justify-content:flex-end;min-width:0;}
+  .detailEditGroup input{
+    flex:1;min-width:0;background:var(--steel-lo);border:1px solid var(--line);color:var(--text);
+    padding:6px 8px;border-radius:6px;font-family:'IBM Plex Mono',monospace;font-size:12px;
+  }
+  .openBtn{
+    flex-shrink:0;background:none;border:1px solid var(--line);color:var(--blue);
+    width:26px;height:26px;border-radius:6px;cursor:pointer;font-size:13px;
+  }
+  .openBtn:hover{border-color:var(--blue);}
+  #detailPushBtn{
+    margin-top:14px;width:100%;background:var(--blue);color:#062430;border:none;font-weight:700;
+    padding:11px;border-radius:6px;cursor:pointer;font-size:13px;letter-spacing:0.3px;
+  }
+  #detailPushBtn:active{transform:translateY(1px);}
+
+  #detailParentBanner{
+    display:none;background:rgba(56,189,248,0.12);color:var(--blue);
+    font-size:11px;padding:6px 8px;border-radius:6px;margin:-4px 0 10px;
+  }
+  .boomerangIcon{font-size:14px;}
+  #detailWaitingNotes{
+    width:100%;resize:vertical;background:var(--steel-lo);border:1px solid var(--line);color:var(--text);
+    padding:8px;border-radius:6px;font-family:'IBM Plex Mono',monospace;font-size:12px;min-height:40px;
+  }
+  #detailSubtaskList{max-height:150px;overflow-y:auto;}
+  .subtaskRow{
+    display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--line);
+    font-size:12px;
+  }
+  .subCheck{flex-shrink:0;width:15px;height:15px;accent-color:var(--blue);}
+  .subText{flex:1;outline:none;word-break:break-word;min-width:0;}
+  .subText.done{color:var(--dim);text-decoration:line-through;}
+  .subPromoteBtn,.subDeleteBtn{
+    flex-shrink:0;background:none;border:1px solid var(--line);color:var(--dim);
+    border-radius:5px;padding:3px 6px;font-size:10px;cursor:pointer;
+  }
+  .subPromoteBtn:hover{color:var(--blue);border-color:var(--blue);}
+  .subDeleteBtn:hover{color:var(--red);border-color:var(--red);}
+  .subtaskEmpty{color:var(--dim);font-size:11px;padding:6px 0;}
+  .subtaskAddRow{display:flex;gap:6px;margin-top:8px;}
+  .subtaskAddRow input{
+    flex:1;background:var(--steel-lo);border:1px solid var(--line);color:var(--text);
+    padding:7px 8px;border-radius:6px;font-family:'IBM Plex Mono',monospace;font-size:12px;
+  }
+  .subtaskAddRow button{
+    flex-shrink:0;width:32px;background:var(--blue);color:#062430;border:none;
+    border-radius:6px;font-weight:700;cursor:pointer;font-size:15px;
+  }
+
+  #toast{
+    position:absolute;left:50%;bottom:20px;transform:translate(-50%,20px);
+    display:flex;align-items:center;gap:12px;
+    background:#1b1e24;border:1px solid var(--line);border-radius:8px;
+    padding:10px 14px;font-size:12px;box-shadow:0 10px 30px rgba(0,0,0,0.4);
+    opacity:0;pointer-events:none;transition:opacity .2s ease, transform .2s ease;z-index:25;
+  }
+  #toast.show{opacity:1;transform:translate(-50%,0);pointer-events:auto;}
+  #toastUndoBtn{
+    background:none;border:1px solid var(--blue);color:var(--blue);font-weight:700;
+    padding:5px 10px;border-radius:5px;cursor:pointer;font-size:11px;
+  }
+  #toastUndoBtn:hover{background:var(--blue);color:#062430;}
+
+  #stats{
+    display:flex;gap:18px;padding:8px 18px;font-size:11px;color:var(--dim);
+    border-bottom:1px solid var(--line);background:var(--bg2);flex-shrink:0;flex-wrap:wrap;
+  }
+  #stats b{color:var(--text);font-weight:500;}
+  .gauge{width:90px;height:6px;background:var(--steel-lo);border-radius:3px;overflow:hidden;display:inline-block;vertical-align:middle;margin-left:6px;}
+  .gauge-fill{height:100%;width:0%;background:var(--green);transition:width .3s ease, background .3s ease;}
+
+  #canvasWrap{flex:1;position:relative;overflow:hidden;}
+  canvas{position:absolute;top:0;left:0;width:100%;height:100%;cursor:default;display:block;}
+
+  .legend{
+    position:absolute;bottom:10px;left:12px;display:flex;gap:10px;flex-wrap:wrap;
+    font-size:10px;color:var(--dim);z-index:5;pointer-events:none;
+  }
+  .legend span{display:inline-flex;align-items:center;gap:4px;}
+  .dot{width:8px;height:8px;border-radius:50%;display:inline-block;}
+
+  @media (max-width:560px){
+    header h1{font-size:18px;}
+    #controls{padding:10px 12px;}
+    #stats{font-size:10px;padding:6px 12px;gap:10px;}
+  }
+
+  @media (max-height:480px) and (orientation:landscape){
+    header{padding:6px 14px 5px;}
+    header h1{font-size:14px;}
+    header h1 span{display:none;}
+    #controls{padding:6px 12px;gap:6px;}
+    #controls input[type=text]{padding:6px 8px;font-size:12px;flex:1 1 110px;}
+    #controls input[type=date]{padding:5px 6px;font-size:12px;}
+    .size-picker{padding:4px 8px;}
+    #addBtn,.secondary-btn{padding:6px 10px;font-size:11px;}
+    #moreControls.open{max-height:50px;padding:6px 12px 8px;}
+    #moreControls input{padding:6px 8px;font-size:12px;}
+    #stats{padding:4px 12px;font-size:9px;gap:8px;}
+    #detailCard{max-height:92%;padding:12px 14px 14px;}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1 class="display">THE PIPE<span>Drop a task in. Bigger jobs need a wider mouth. Deadlines set the heat.</span></h1>
+  </header>
+
+  <div id="controls">
+    <input type="text" id="titleInput" placeholder="What's the task?" maxlength="40">
+    <div class="size-picker" id="sizePicker" title="Project size">
+      <div class="size-btn active" data-size="S"></div>
+      <div class="size-btn" data-size="M"></div>
+      <div class="size-btn" data-size="L"></div>
+      <div class="size-btn" data-size="XL"></div>
+    </div>
+    <input type="date" id="deadlineInput">
+    <button id="moreToggleBtn" class="display secondary-btn" type="button">+ LINK/EMAIL</button>
+    <button id="addBtn" class="display">DROP IT IN</button>
+    <button id="undoBtn" class="display secondary-btn" title="Undo last action">↺ UNDO</button>
+    <button id="viewShippedBtn" class="display secondary-btn">SHIPPED LOG</button>
+  </div>
+  <div id="moreControls">
+    <input type="url" id="linkInput" placeholder="Link (optional) — https://…">
+    <input type="email" id="emailInput" placeholder="Email (optional)">
+  </div>
+
+  <div id="stats">
+    <div>QUEUED <b id="statQueued">0</b></div>
+    <div>JAMMED <b id="statJammed">0</b></div>
+    <div>SHIPPED <b id="statShipped">0</b></div>
+    <div>PRESSURE<span class="gauge"><span class="gauge-fill" id="gaugeFill"></span></span></div>
+  </div>
+
+  <div id="canvasWrap">
+    <canvas id="cv"></canvas>
+
+    <div id="detailModal">
+      <div id="detailBackdrop"></div>
+      <div id="detailCard">
+        <div class="detailHeader">
+          <span class="dot" id="detailDot"></span>
+          <input class="display" id="detailTitleInput" maxlength="40" placeholder="Task title">
+          <button id="detailCloseBtn" aria-label="Close">✕</button>
+        </div>
+        <div id="detailParentBanner"></div>
+
+        <div class="detailRow">
+          <span class="detailLabel">Size</span>
+          <div class="size-picker" id="detailSizePicker">
+            <div class="size-btn" data-size="S"></div>
+            <div class="size-btn" data-size="M"></div>
+            <div class="size-btn" data-size="L"></div>
+            <div class="size-btn" data-size="XL"></div>
+          </div>
+        </div>
+        <div class="detailRow">
+          <span class="detailLabel">Deadline</span>
+          <input type="date" id="detailDeadlineInput">
+        </div>
+        <div class="detailRow">
+          <span class="detailLabel">Urgency</span>
+          <span id="detailUrgency"></span>
+        </div>
+        <div class="detailRow">
+          <span class="detailLabel">Link</span>
+          <span class="detailEditGroup">
+            <input type="url" id="detailLinkInput" placeholder="https://…">
+            <button class="openBtn" id="detailLinkOpenBtn" title="Open link">↗</button>
+          </span>
+        </div>
+        <div class="detailRow">
+          <span class="detailLabel">Email</span>
+          <span class="detailEditGroup">
+            <input type="email" id="detailEmailInput" placeholder="name@example.com">
+            <button class="openBtn" id="detailEmailOpenBtn" title="Compose email">↗</button>
+          </span>
+        </div>
+        <div class="detailRow" style="flex-direction:column;align-items:stretch;">
+          <span class="detailLabel" style="margin-bottom:8px;display:flex;align-items:center;gap:6px;">
+            <span class="boomerangIcon">🪃</span> Waiting on someone else?
+          </span>
+          <textarea id="detailWaitingNotes" rows="2" placeholder="Who or what are you waiting on?"></textarea>
+        </div>
+        <div class="detailRow" style="flex-direction:column;align-items:stretch;border-bottom:none;">
+          <span class="detailLabel" style="margin-bottom:8px;">To-do</span>
+          <div id="detailSubtaskList"></div>
+          <div class="subtaskAddRow">
+            <input type="text" id="detailSubtaskInput" placeholder="Add a step…" maxlength="60">
+            <button id="detailSubtaskAddBtn">+</button>
+          </div>
+        </div>
+        <div class="detailRow" id="detailShippedRow"><span class="detailLabel">Shipped</span><span id="detailShippedAt"></span></div>
+        <button id="detailPushBtn" class="display">SAVE</button>
+      </div>
+    </div>
+
+    <div id="shippedPanel">
+      <div class="shippedHeader">
+        <span class="display">SHIPPED (<span id="shippedCountLabel">0</span>)</span>
+        <button id="closeShippedBtn" aria-label="Close">✕</button>
+      </div>
+      <div id="shippedList"></div>
+    </div>
+
+    <div id="toast">
+      <span id="toastMsg"></span>
+      <button id="toastUndoBtn" class="display">UNDO</button>
+    </div>
+
+    <div class="legend">
+      <span><span class="dot" style="background:#e11d2e"></span>overdue</span>
+      <span><span class="dot" style="background:#f97316"></span>≤2 days</span>
+      <span><span class="dot" style="background:#eab308"></span>this week</span>
+      <span><span class="dot" style="background:#22c55e"></span>this month</span>
+      <span><span class="dot" style="background:#38bdf8"></span>no rush</span>
+    </div>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('cv');
+const ctx = canvas.getContext('2d');
+const wrap = document.getElementById('canvasWrap');
+
+let W=0,H=0,DPR=Math.min(window.devicePixelRatio||1,2);
+function resize(){
+  W = wrap.clientWidth; H = wrap.clientHeight;
+  canvas.width = W*DPR; canvas.height = H*DPR;
+  canvas.style.width=W+'px'; canvas.style.height=H+'px';
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+}
+window.addEventListener('resize', resize);
+window.addEventListener('orientationchange', ()=>setTimeout(resize,50));
+resize();
+
+const SIZE_MAP = { S:16, M:23, L:30, XL:40 };
+let MOUTH_R = 33;
+let mouthX, mouthY, floorY;
+function layout(){
+  mouthX = W*0.74;
+  mouthY = H*0.46;
+  MOUTH_R = Math.max(20, Math.min(38, H*0.16));
+  floorY = mouthY + MOUTH_R*0.75;
+}
+layout();
+window.addEventListener('resize', layout);
+window.addEventListener('orientationchange', ()=>setTimeout(layout,50));
+
+let tasks = [];
+let shippedLog = [];   // {id,title,sizeKey,deadline,color,urgencyLabel,shippedAt}
+let actionLog = [];    // {type:'add'|'ship', id}
+let idSeq = 1;
+
+function colorForDeadline(dateStr){
+  if(!dateStr) return {c:'#38bdf8', label:'no rush'};
+  const today = new Date(); today.setHours(0,0,0,0);
+  const d = new Date(dateStr+'T00:00:00');
+  const days = Math.round((d-today)/86400000);
+  if(days < 0) return {c:'#e11d2e', label:'overdue'};
+  if(days <= 2) return {c:'#f97316', label:'due soon'};
+  if(days <= 7) return {c:'#eab308', label:'this week'};
+  if(days <= 30) return {c:'#22c55e', label:'this month'};
+  return {c:'#38bdf8', label:'no rush'};
+}
+
+function priorityScore(t){
+  const today = new Date(); today.setHours(0,0,0,0);
+  let urgency = 0.02;
+  if(t.deadline){
+    const d = new Date(t.deadline+'T00:00:00');
+    const days = Math.round((d-today)/86400000);
+    urgency = 1/(Math.max(days,0)+1);
+  }
+  // deadline drives the queue; size only nudges ties, it doesn't override the deadline order
+  const sizeNudge = {S:1, M:1.03, L:1.06, XL:1.09}[t.sizeKey];
+  return urgency*sizeNudge;
+}
+
+function addTask(title, sizeKey, deadline, link, email, parentId, parentTitle){
+  const {c,label} = colorForDeadline(deadline);
+  const r = SIZE_MAP[sizeKey];
+
+  // deadline decides where in the queue a task drops in - soonest due, closest to the mouth
+  const today = new Date(); today.setHours(0,0,0,0);
+  let urgencyFactor = 0.05;
+  if(deadline){
+    const days = Math.round((new Date(deadline+'T00:00:00')-today)/86400000);
+    urgencyFactor = Math.max(0, Math.min(1, 1 - days/30));
+  }
+  const spawnBias = urgencyFactor;
+
+  const leftEdge = 60;
+  const rightEdge = mouthX - MOUTH_R - 30;
+  const spawnX = leftEdge + (rightEdge-leftEdge)*spawnBias + (Math.random()*16-8);
+
+  const t = {
+    id: idSeq++,
+    title: title || 'untitled task',
+    sizeKey, radius: r, deadline, color: c, urgencyLabel: label,
+    link: (link||'').trim(), email: (email||'').trim(),
+    subtasks: [], waitingNotes: '',
+    parentId: parentId||null, parentTitle: parentTitle||null,
+    x: spawnX, y: -30 - Math.random()*40,
+    vx: 0, vy: 0,
+    state: 'falling', // falling -> queue -> shipping -> done
+    shape: 'square',
+    shipT: 0,
+    dragging: false,
+    jamPhase: Math.random()*Math.PI*2,
+    settleTimer: 0
+  };
+  tasks.push(t);
+  actionLog.push({type:'add', id:t.id});
+  return t;
+}
+
+// ---- physics ----
+const GRAV = 900;
+function step(dt){
+  const basinLeft = 20;
+  const basinRight = mouthX - MOUTH_R - 6;
+
+  for(const t of tasks){
+    if(t.state==='shipping'){
+      t.shipT += dt/0.65;
+      if(t.shipT>=1){
+        t.state='done';
+        shippedLog.unshift({
+          id:t.id, title:t.title, sizeKey:t.sizeKey, deadline:t.deadline,
+          color:t.color, urgencyLabel:t.urgencyLabel, shippedAt:Date.now(),
+          link:t.link, email:t.email, subtasks:t.subtasks||[], waitingNotes:t.waitingNotes||'',
+          parentId:t.parentId, parentTitle:t.parentTitle
+        });
+        refreshShippedPanel();
+      }
+      continue;
+    }
+    if(t.state==='done') continue;
+    if(t.dragging) continue; // position is being driven directly by the pointer
+
+    // gravity
+    t.vy += GRAV*dt;
+
+    // how many tasks are piled on top of this one nearby -> makes it heavier/slower
+    let stackWeight = 0;
+    for(const o of tasks){
+      if(o===t || o.state==='shipping' || o.state==='done' || o.dragging) continue;
+      if(Math.abs(o.x-t.x) < (t.radius+o.radius)*0.9 && o.y < t.y - t.radius*0.4){
+        stackWeight++;
+      }
+    }
+
+    // priority drift toward mouth - stronger, so higher-priority tasks rest closer to the pipe;
+    // dampened by stack weight, so a buried task is sluggish until the pile above it clears
+    const p = priorityScore(t);
+    const weightDamp = 1/(1+stackWeight*0.35);
+    const targetPull = Math.min(p*160, 200) * weightDamp;
+    t.vx += (targetPull - t.vx*0.02)*dt*2.2;
+
+    // damping - heavier (more buried) tasks are more sluggish to move
+    t.vx *= (0.9 - Math.min(stackWeight,4)*0.04);
+    t.vy *= 0.995;
+
+    t.x += t.vx*dt;
+    t.y += t.vy*dt;
+
+    // floor
+    if(t.y + t.radius > floorY){
+      t.y = floorY - t.radius;
+      t.vy = 0;
+    }
+    // left wall
+    if(t.x - t.radius < basinLeft){
+      t.x = basinLeft + t.radius; t.vx *= -0.3;
+    }
+    // right boundary = mouth wall, unless small enough & settled to enter
+    const canEnter = t.radius <= MOUTH_R+2;
+    const nearMouthY = Math.abs(t.y - mouthY) < MOUTH_R*0.6;
+    if(t.x + t.radius > basinRight){
+      if(canEnter && nearMouthY && t.state!=='shipping'){
+        // allowed to sit right at the mouth, waiting for click
+        t.x = basinRight;
+      } else {
+        t.x = basinRight;
+        t.vx *= -0.4;
+      }
+    }
+
+    // settle detection -> queue state
+    if(Math.abs(t.vx)<8 && Math.abs(t.vy)<8){
+      t.settleTimer += dt;
+      if(t.settleTimer>0.3) t.state='queue';
+    } else {
+      t.settleTimer = 0;
+      if(t.state==='falling' && t.y>0) t.state='falling';
+    }
+  }
+
+  // rectangle (AABB) separation - boxes never overlap; they stack vertically
+  // only when there isn't enough horizontal room
+  for(let i=0;i<tasks.length;i++){
+    const a = tasks[i];
+    if(a.state==='shipping'||a.state==='done'||a.dragging) continue;
+    const aHW=a.radius*1.15, aHH=a.radius*0.675;
+    for(let j=i+1;j<tasks.length;j++){
+      const b = tasks[j];
+      if(b.state==='shipping'||b.state==='done'||b.dragging) continue;
+      const bHW=b.radius*1.15, bHH=b.radius*0.675;
+
+      const dx = b.x-a.x, dy = b.y-a.y;
+      const overlapX = (aHW+bHW) - Math.abs(dx);
+      const overlapY = (aHH+bHH) - Math.abs(dy);
+      if(overlapX>0 && overlapY>0){
+        if(overlapX < overlapY){
+          const push = overlapX/2 * (dx<0?-1:1) || overlapX/2;
+          a.x -= push; b.x += push;
+        } else {
+          const push = overlapY/2 * (dy<0?-1:1) || overlapY/2;
+          a.y -= push; b.y += push;
+          // whichever one is now resting on top stops falling - no bounce when stacking
+          if(dy<0) b.vy = Math.min(b.vy, 0);
+          else a.vy = Math.min(a.vy, 0);
+        }
+      }
+    }
+  }
+
+  tasks = tasks.filter(t=>t.state!=='done');
+}
+
+// ---- drawing ----
+function drawPipe(){
+  // pipe body from mouth to right edge
+  const topY = mouthY - MOUTH_R;
+  const botY = mouthY + MOUTH_R;
+  const grad = ctx.createLinearGradient(0,topY,0,botY);
+  grad.addColorStop(0,'#3a4048');
+  grad.addColorStop(0.15,'#7d8792');
+  grad.addColorStop(0.5,'#2c3137');
+  grad.addColorStop(0.85,'#7d8792');
+  grad.addColorStop(1,'#232830');
+  ctx.fillStyle = grad;
+  ctx.fillRect(mouthX, topY, W-mouthX, botY-topY);
+
+  // rivets
+  ctx.fillStyle='rgba(0,0,0,0.25)';
+  for(let x=mouthX+30; x<W; x+=42){
+    ctx.beginPath(); ctx.arc(x, topY+4, 2.4, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.arc(x, botY-4, 2.4, 0, 7); ctx.fill();
+  }
+
+  // mouth opening (dark ellipse)
+  const mgrad = ctx.createRadialGradient(mouthX,mouthY,4, mouthX,mouthY,MOUTH_R);
+  mgrad.addColorStop(0,'#05070a');
+  mgrad.addColorStop(1,'#3d434b');
+  ctx.fillStyle = mgrad;
+  ctx.beginPath();
+  ctx.ellipse(mouthX, mouthY, MOUTH_R*0.55, MOUTH_R, 0, 0, Math.PI*2);
+  ctx.fill();
+  ctx.strokeStyle='#9aa3ad'; ctx.lineWidth=2.5;
+  ctx.beginPath();
+  ctx.ellipse(mouthX, mouthY, MOUTH_R*0.55, MOUTH_R, 0, 0, Math.PI*2);
+  ctx.stroke();
+
+  // shipped tray at right edge
+  const trayX = W-8;
+  ctx.fillStyle='rgba(56,189,248,0.08)';
+  ctx.fillRect(W-90, topY-6, 90, botY-topY+12);
+  ctx.fillStyle='var(--dim)';
+  ctx.fillStyle='#8b93a0';
+  ctx.font='10px IBM Plex Mono';
+  ctx.textAlign='right';
+  ctx.fillText('SHIPPED →', W-10, topY-10);
+}
+
+function drawShape(t, r, alpha){
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.translate(t.x, t.y);
+  ctx.fillStyle = t.color;
+  ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+  ctx.lineWidth = 1.5;
+
+  if(t.shape==='circle'){
+    ctx.beginPath(); ctx.arc(0,0,r,0,Math.PI*2); ctx.fill(); ctx.stroke();
+  } else if(t.shape==='square'){
+    ctx.beginPath();
+    const w=r*2.3, h=r*1.35;
+    roundRect(-w/2,-h/2,w,h,6);
+    ctx.fill(); ctx.stroke();
+  } else if(t.shape==='hex'){
+    polygon(0,0,r,6); ctx.fill(); ctx.stroke();
+  } else if(t.shape==='star'){
+    star(0,0,r,r*0.5,7); ctx.fill(); ctx.stroke();
+  }
+  ctx.restore();
+}
+function roundRect(x,y,w,h,rad){
+  ctx.beginPath();
+  ctx.moveTo(x+rad,y);
+  ctx.arcTo(x+w,y,x+w,y+h,rad);
+  ctx.arcTo(x+w,y+h,x,y+h,rad);
+  ctx.arcTo(x,y+h,x,y,rad);
+  ctx.arcTo(x,y,x+w,y,rad);
+  ctx.closePath();
+}
+function polygon(cx,cy,r,sides){
+  ctx.beginPath();
+  for(let i=0;i<sides;i++){
+    const a = -Math.PI/2 + i*2*Math.PI/sides;
+    const x=cx+r*Math.cos(a), y=cy+r*Math.sin(a);
+    if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  }
+  ctx.closePath();
+}
+function star(cx,cy,rOuter,rInner,points){
+  ctx.beginPath();
+  for(let i=0;i<points*2;i++){
+    const r = i%2===0?rOuter:rInner;
+    const a = -Math.PI/2 + i*Math.PI/points;
+    const x=cx+r*Math.cos(a), y=cy+r*Math.sin(a);
+    if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  }
+  ctx.closePath();
+}
+
+function drawLabel(t){
+  if(t.state==='shipping') return;
+  ctx.save();
+  const boxW = t.radius*2.3 - 8;
+  const fontSize = Math.max(9, Math.min(13, t.radius*0.42));
+  ctx.font = `700 ${fontSize}px IBM Plex Mono`;
+  ctx.textAlign='center';
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+  ctx.fillStyle = '#0b0d10';
+  ctx.lineJoin = 'round';
+
+  // wrap into up to 2 lines that fit the box width
+  const words = t.title.split(' ');
+  let lines = [];
+  let cur = '';
+  for(const w of words){
+    const test = cur ? cur+' '+w : w;
+    if(ctx.measureText(test).width > boxW && cur){
+      lines.push(cur); cur = w;
+    } else {
+      cur = test;
+    }
+    if(lines.length===2) break;
+  }
+  if(lines.length<2 && cur) lines.push(cur);
+  if(lines.length===2){
+    // ellipsize second line if still too wide
+    let l2 = lines[1];
+    while(ctx.measureText(l2+'…').width > boxW && l2.length>1){
+      l2 = l2.slice(0,-1);
+    }
+    if(l2.length < lines[1].length) lines[1] = l2+'…';
+  }
+
+  const lineH = fontSize*1.15;
+  const startY = t.y - ((lines.length-1)*lineH)/2 + fontSize*0.32;
+  lines.forEach((line,i)=>{
+    const y = startY + i*lineH;
+    ctx.strokeText(line, t.x, y);
+    ctx.fillText(line, t.x, y);
+  });
+  ctx.restore();
+}
+
+function render(){
+  ctx.clearRect(0,0,W,H);
+
+  // background
+  const bgrad = ctx.createLinearGradient(0,0,0,H);
+  bgrad.addColorStop(0,'#181b20'); bgrad.addColorStop(1,'#101216');
+  ctx.fillStyle=bgrad;
+  ctx.fillRect(0,0,W,H);
+
+  // floor
+  ctx.strokeStyle='#2a2f37'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(0,floorY); ctx.lineTo(mouthX-MOUTH_R-6, floorY); ctx.stroke();
+
+  // chute label
+  ctx.fillStyle='#8b93a0'; ctx.font='10px IBM Plex Mono'; ctx.textAlign='left';
+  ctx.fillText('↓ NEW', 14, 20);
+
+  drawPipe();
+
+  const now = performance.now();
+  for(const t of tasks){
+    if(t.state==='shipping'){
+      const ease = 1-Math.pow(1-t.shipT,3);
+      const startX = mouthX, endX = W-40;
+      const x = startX + (endX-startX)*ease;
+      const rEff = t.radius > MOUTH_R ? t.radius - (t.radius-MOUTH_R)*Math.min(ease*2,1) : t.radius;
+      const fake = {...t, x, y: mouthY, shape:t.shape, color:t.color};
+      drawShape(fake, rEff, 1-ease*0.15);
+      continue;
+    }
+
+    let jitterX=0, jitterY=0;
+    const isJammed = !t.dragging && t.radius > MOUTH_R && t.x > mouthX - MOUTH_R - 10 && t.state==='queue';
+    if(isJammed){
+      t.jamPhase += 0.15;
+      jitterX = Math.sin(t.jamPhase)*1.6;
+      jitterY = Math.cos(t.jamPhase*1.3)*1.2;
+    }
+    const drawT = {...t, x:t.x+jitterX, y:t.y+jitterY};
+    // glow ring for overdue
+    if(t.urgencyLabel==='overdue'){
+      ctx.save();
+      ctx.globalAlpha = 0.5;
+      ctx.strokeStyle='#e11d2e'; ctx.lineWidth=3;
+      ctx.beginPath(); ctx.arc(drawT.x, drawT.y, t.radius+5, 0, Math.PI*2); ctx.stroke();
+      ctx.restore();
+    }
+    if(t.dragging){
+      ctx.save();
+      ctx.shadowColor='rgba(0,0,0,0.5)'; ctx.shadowBlur=14; ctx.shadowOffsetY=6;
+      drawShape(drawT, t.radius, 1);
+      ctx.restore();
+    } else {
+      drawShape(drawT, t.radius, 1);
+    }
+    if(t.parentId){
+      ctx.save();
+      const hw = t.radius*1.15, hh = t.radius*0.675;
+      ctx.fillStyle='rgba(255,255,255,0.9)';
+      ctx.beginPath();
+      ctx.moveTo(drawT.x - hw, drawT.y - hh);
+      ctx.lineTo(drawT.x - hw + 9, drawT.y - hh);
+      ctx.lineTo(drawT.x - hw, drawT.y - hh + 9);
+      ctx.closePath(); ctx.fill();
+      ctx.restore();
+    }
+    if(t.waitingNotes && t.waitingNotes.trim()){
+      ctx.save();
+      const hw = t.radius*1.15, hh = t.radius*0.675;
+      const bx = drawT.x + hw - 11, by = drawT.y - hh + 11;
+      const blink = 0.4 + 0.6*Math.abs(Math.sin(now/450));
+      ctx.globalAlpha = blink;
+      ctx.beginPath(); ctx.arc(bx, by, 9, 0, Math.PI*2);
+      ctx.fillStyle = '#1b1e24';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.7)'; ctx.lineWidth=1.5; ctx.stroke();
+      ctx.font = '11px sans-serif';
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText('🪃', bx, by+0.5);
+      ctx.restore();
+    }
+    drawLabel(drawT);
+  }
+
+  // highlight the mouth while something is being dragged near it
+  if(tasks.some(t=>t.dragging)){
+    const dragged = tasks.find(t=>t.dragging);
+    const dist = Math.hypot(dragged.x-mouthX, dragged.y-mouthY);
+    if(dist < MOUTH_R*1.4){
+      ctx.save();
+      ctx.strokeStyle='rgba(56,189,248,0.9)'; ctx.lineWidth=3;
+      ctx.beginPath(); ctx.ellipse(mouthX, mouthY, MOUTH_R*0.7, MOUTH_R*1.15, 0, 0, Math.PI*2); ctx.stroke();
+      ctx.restore();
+    }
+  }
+}
+
+// ---- stats ----
+function updateStats(){
+  const queued = tasks.filter(t=>t.state==='queue'||t.state==='falling').length;
+  const jammed = tasks.filter(t=>t.radius>MOUTH_R && t.state==='queue' && t.x>mouthX-MOUTH_R-10).length;
+  document.getElementById('statQueued').textContent = queued;
+  document.getElementById('statJammed').textContent = jammed;
+  document.getElementById('statShipped').textContent = shippedLog.length;
+
+  const basinCapacity = 260;
+  const load = tasks.filter(t=>t.state!=='shipping'&&t.state!=='done').reduce((s,t)=>s+t.radius,0);
+  const pct = Math.min(100, (load/basinCapacity)*100);
+  const gf = document.getElementById('gaugeFill');
+  gf.style.width = pct+'%';
+  gf.style.background = pct<40?'#22c55e':pct<75?'#eab308':'#e11d2e';
+}
+
+// ---- main loop ----
+let last = performance.now();
+function loop(now){
+  const dt = Math.min((now-last)/1000, 0.033);
+  last = now;
+  step(dt);
+  render();
+  updateStats();
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+// ---- sound ----
+let audioCtx = null;
+function playWhoosh(){
+  try{
+    if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    const ctxA = audioCtx;
+    const dur = 0.5;
+    const bufferSize = ctxA.sampleRate*dur;
+    const buffer = ctxA.createBuffer(1, bufferSize, ctxA.sampleRate);
+    const data = buffer.getChannelData(0);
+    for(let i=0;i<bufferSize;i++) data[i] = (Math.random()*2-1);
+
+    const noise = ctxA.createBufferSource();
+    noise.buffer = buffer;
+
+    const filter = ctxA.createBiquadFilter();
+    filter.type='bandpass';
+    filter.Q.value = 0.9;
+    filter.frequency.setValueAtTime(1800, ctxA.currentTime);
+    filter.frequency.exponentialRampToValueAtTime(220, ctxA.currentTime+dur);
+
+    const gain = ctxA.createGain();
+    gain.gain.setValueAtTime(0.0001, ctxA.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.5, ctxA.currentTime+0.06);
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctxA.currentTime+dur);
+
+    noise.connect(filter); filter.connect(gain); gain.connect(ctxA.destination);
+    noise.start(); noise.stop(ctxA.currentTime+dur);
+  } catch(e){ /* audio unavailable, fail silently */ }
+}
+
+// ---- undo toast ----
+const toastEl = document.getElementById('toast');
+let toastTimer = null;
+function showUndoToast(task){
+  toastEl.querySelector('#toastMsg').textContent = `Shipped "${task.title}"`;
+  toastEl.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>toastEl.classList.remove('show'), 5000);
+}
+document.getElementById('toastUndoBtn').addEventListener('click', ()=>{
+  undoLast();
+  toastEl.classList.remove('show');
+  clearTimeout(toastTimer);
+});
+
+function shipTask(task){
+  task.state='shipping';
+  task.dragging=false;
+  task.shipT=0;
+  actionLog.push({type:'ship', id:task.id});
+  playWhoosh();
+  showUndoToast(task);
+}
+
+// ---- interaction: tap to open detail, drag into the mouth to ship ----
+canvas.style.touchAction = 'none';
+let pointerTask = null;
+let dragStarted = false;
+let downX=0, downY=0;
+const DRAG_VISUAL_THRESHOLD = 6;   // movement needed before the box visually follows the pointer
+const TAP_DISTANCE = 12;           // release-point distance under which it always counts as a tap
+
+function findHit(mx,my){
+  for(let i=tasks.length-1;i>=0;i--){
+    const t = tasks[i];
+    if(t.state==='shipping'||t.state==='done') continue;
+    const hw=t.radius*1.15+3, hh=t.radius*0.675+3;
+    if(Math.abs(mx-t.x)<=hw && Math.abs(my-t.y)<=hh) return t;
+  }
+  return null;
+}
+
+canvas.addEventListener('pointerdown', (e)=>{
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX-rect.left, my = e.clientY-rect.top;
+  const hit = findHit(mx,my);
+  if(hit){
+    pointerTask = hit;
+    dragStarted = false;
+    downX = mx; downY = my;
+    pointerTask._offX = mx - hit.x;
+    pointerTask._offY = my - hit.y;
+    canvas.setPointerCapture(e.pointerId);
+  }
+});
+
+canvas.addEventListener('pointermove', (e)=>{
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX-rect.left, my = e.clientY-rect.top;
+
+  if(pointerTask){
+    const dist = Math.hypot(mx-downX, my-downY);
+    if(!dragStarted && dist > DRAG_VISUAL_THRESHOLD){
+      dragStarted = true;
+      pointerTask.dragging = true;
+    }
+    if(dragStarted){
+      pointerTask.x = mx - pointerTask._offX;
+      pointerTask.y = my - pointerTask._offY;
+    }
+    return;
+  }
+
+  let over=false;
+  for(const t of tasks){
+    if(t.state==='shipping'||t.state==='done') continue;
+    const hw=t.radius*1.15+3, hh=t.radius*0.675+3;
+    if(Math.abs(mx-t.x)<=hw && Math.abs(my-t.y)<=hh){ over=true; break; }
+  }
+  canvas.style.cursor = over?'pointer':'default';
+});
+
+function endPointer(e){
+  if(!pointerTask) return;
+  const t = pointerTask;
+  try{ canvas.releasePointerCapture(e.pointerId); }catch(err){}
+
+  const rect = canvas.getBoundingClientRect();
+  const upX = e.clientX-rect.left, upY = e.clientY-rect.top;
+  const releaseDist = Math.hypot(upX-downX, upY-downY);
+
+  if(releaseDist <= TAP_DISTANCE){
+    // it was a tap, even if it wobbled visually mid-press - open the editable card
+    t.dragging = false;
+    t.vx = 0; t.vy = 0; t.settleTimer = 0;
+    pointerTask = null; dragStarted = false;
+    openDetail(t);
+    return;
+  }
+
+  if(dragStarted){
+    const dist = Math.hypot(t.x-mouthX, t.y-mouthY);
+    if(dist < MOUTH_R*1.4){
+      shipTask(t);
+    } else {
+      t.dragging = false;
+      t.vx = 0; t.vy = 0; t.settleTimer = 0;
+    }
+  }
+  pointerTask = null;
+  dragStarted = false;
+}
+canvas.addEventListener('pointerup', endPointer);
+canvas.addEventListener('pointercancel', endPointer);
+
+// ---- subtask checklist ----
+function renderSubtasks(task){
+  const list = document.getElementById('detailSubtaskList');
+  const subs = task.subtasks || [];
+  if(subs.length===0){
+    list.innerHTML = '<div class="subtaskEmpty">No steps yet.</div>';
+  } else {
+    list.innerHTML = subs.map((s,i)=>`
+      <div class="subtaskRow" data-idx="${i}">
+        <input type="checkbox" class="subCheck" ${s.done?'checked':''}>
+        <span class="subText ${s.done?'done':''}" contenteditable="true">${escapeHtml(s.text)}</span>
+        <button class="subPromoteBtn" title="Make this its own task">↗ task</button>
+        <button class="subDeleteBtn" title="Remove">✕</button>
+      </div>`).join('');
+  }
+
+  list.querySelectorAll('.subtaskRow').forEach(row=>{
+    const idx = Number(row.dataset.idx);
+    row.querySelector('.subCheck').addEventListener('change', (e)=>{
+      task.subtasks[idx].done = e.target.checked;
+      row.querySelector('.subText').classList.toggle('done', e.target.checked);
+    });
+    row.querySelector('.subText').addEventListener('input', (e)=>{
+      task.subtasks[idx].text = e.target.textContent.trim() || 'step';
+    });
+    row.querySelector('.subDeleteBtn').addEventListener('click', ()=>{
+      task.subtasks.splice(idx,1);
+      renderSubtasks(task);
+    });
+    row.querySelector('.subPromoteBtn').addEventListener('click', ()=>{
+      const item = task.subtasks[idx];
+      task.subtasks.splice(idx,1);
+      addTask(item.text, 'S', task.deadline, '', '', task.id, task.title);
+      renderSubtasks(task);
+    });
+  });
+}
+
+document.getElementById('detailSubtaskAddBtn').addEventListener('click', addSubtaskFromInput);
+document.getElementById('detailSubtaskInput').addEventListener('keydown', (e)=>{
+  if(e.key==='Enter'){ e.preventDefault(); addSubtaskFromInput(); }
+});
+let currentDetailTask = null;
+function addSubtaskFromInput(){
+  const input = document.getElementById('detailSubtaskInput');
+  const text = input.value.trim();
+  if(!text || !currentDetailTask) return;
+  currentDetailTask.subtasks = currentDetailTask.subtasks || [];
+  currentDetailTask.subtasks.push({text, done:false});
+  input.value='';
+  renderSubtasks(currentDetailTask);
+}
+
+// ---- task detail modal ----
+const detailModal = document.getElementById('detailModal');
+function openDetail(task, shippedAt){
+  const isShipped = !!shippedAt;
+  currentDetailTask = task;
+
+  const parentBanner = document.getElementById('detailParentBanner');
+  if(task.parentId){
+    parentBanner.style.display='block';
+    parentBanner.textContent = `↗ Subtask of "${task.parentTitle}"`;
+  } else {
+    parentBanner.style.display='none';
+  }
+
+  const titleInput = document.getElementById('detailTitleInput');
+  const dot = document.getElementById('detailDot');
+  const urgencyEl = document.getElementById('detailUrgency');
+  const deadlineInput = document.getElementById('detailDeadlineInput');
+  const linkInput = document.getElementById('detailLinkInput');
+  const emailInput = document.getElementById('detailEmailInput');
+  const sizePicker = document.getElementById('detailSizePicker');
+  const shippedRow = document.getElementById('detailShippedRow');
+  const pushBtn = document.getElementById('detailPushBtn');
+
+  titleInput.value = task.title;
+  dot.style.background = task.color;
+  urgencyEl.textContent = task.urgencyLabel;
+  deadlineInput.value = task.deadline || '';
+  linkInput.value = task.link || '';
+  emailInput.value = task.email || '';
+
+  sizePicker.querySelectorAll('.size-btn').forEach(b=>{
+    b.classList.toggle('active', b.dataset.size===task.sizeKey);
+  });
+
+  // live edits write straight back to the task/log entry
+  titleInput.oninput = ()=>{ task.title = titleInput.value.trim() || 'untitled task'; };
+
+  deadlineInput.onchange = ()=>{
+    task.deadline = deadlineInput.value;
+    const {c,label} = colorForDeadline(task.deadline);
+    task.color = c; task.urgencyLabel = label;
+    dot.style.background = c; urgencyEl.textContent = label;
+  };
+
+  linkInput.oninput = ()=>{ task.link = linkInput.value.trim(); };
+  emailInput.oninput = ()=>{ task.email = emailInput.value.trim(); };
+
+  const waitingNotes = document.getElementById('detailWaitingNotes');
+  waitingNotes.value = task.waitingNotes || '';
+  waitingNotes.oninput = ()=>{ task.waitingNotes = waitingNotes.value.trim(); };
+
+  sizePicker.querySelectorAll('.size-btn').forEach(b=>{
+    b.onclick = ()=>{
+      sizePicker.querySelectorAll('.size-btn').forEach(x=>x.classList.remove('active'));
+      b.classList.add('active');
+      task.sizeKey = b.dataset.size;
+      if(!isShipped) task.radius = SIZE_MAP[task.sizeKey];
+    };
+  });
+
+  document.getElementById('detailLinkOpenBtn').onclick = ()=>{
+    const v = linkInput.value.trim();
+    if(v) window.open(v.startsWith('http')?v:'https://'+v, '_blank', 'noopener');
+  };
+  document.getElementById('detailEmailOpenBtn').onclick = ()=>{
+    const v = emailInput.value.trim();
+    if(v) window.location.href = 'mailto:'+v;
+  };
+
+  if(isShipped){
+    shippedRow.style.display='flex';
+    document.getElementById('detailShippedAt').textContent = timeAgo(shippedAt);
+  } else {
+    shippedRow.style.display='none';
+  }
+  pushBtn.onclick = closeDetail;
+
+  renderSubtasks(task);
+
+  detailModal.classList.add('open');
+  setTimeout(()=>titleInput.focus(),50);
+}
+function closeDetail(){
+  detailModal.classList.remove('open');
+  refreshShippedPanel(); // reflect any edits made to a shipped item
+}
+document.getElementById('detailCloseBtn').addEventListener('click', closeDetail);
+document.getElementById('detailBackdrop').addEventListener('click', closeDetail);
+
+// ---- undo ----
+function undoLast(){
+  if(actionLog.length===0) return;
+  const last = actionLog.pop();
+
+  if(last.type==='add'){
+    tasks = tasks.filter(t=>t.id!==last.id);
+    const li = shippedLog.findIndex(s=>s.id===last.id);
+    if(li>=0) shippedLog.splice(li,1);
+  } else if(last.type==='ship'){
+    // still mid-flight through the pipe -> just pull it back
+    const inFlight = tasks.find(t=>t.id===last.id && t.state==='shipping');
+    if(inFlight){
+      inFlight.state='queue';
+      inFlight.x = mouthX-MOUTH_R-20; inFlight.y = mouthY;
+      inFlight.vx=-30; inFlight.vy=0; inFlight.shipT=0; inFlight.settleTimer=0;
+    } else {
+      // already landed in the shipped log -> pull it back out
+      const li = shippedLog.findIndex(s=>s.id===last.id);
+      if(li>=0){
+        const snap = shippedLog[li];
+        shippedLog.splice(li,1);
+        tasks.push({
+          id:snap.id, title:snap.title, sizeKey:snap.sizeKey, radius:SIZE_MAP[snap.sizeKey],
+          deadline:snap.deadline, color:snap.color, urgencyLabel:snap.urgencyLabel,
+          link:snap.link||'', email:snap.email||'', subtasks:snap.subtasks||[], waitingNotes:snap.waitingNotes||'',
+          parentId:snap.parentId||null, parentTitle:snap.parentTitle||null,
+          x: mouthX-MOUTH_R-20, y: mouthY, vx:-30, vy:0,
+          state:'queue', shape:'square', shipT:0, dragging:false,
+          jamPhase:Math.random()*Math.PI*2, settleTimer:0
+        });
+      }
+    }
+  }
+  refreshShippedPanel();
+}
+
+// ---- shipped log panel ----
+function timeAgo(ts){
+  const d = new Date(ts);
+  return d.toLocaleTimeString([], {hour:'numeric', minute:'2-digit'});
+}
+function refreshShippedPanel(){
+  const list = document.getElementById('shippedList');
+  document.getElementById('shippedCountLabel').textContent = shippedLog.length;
+  if(shippedLog.length===0){
+    list.innerHTML = '<div class="shippedEmpty">Nothing shipped yet.</div>';
+    return;
+  }
+  list.innerHTML = shippedLog.map((s,i)=>`
+    <div class="shippedRow" data-idx="${i}">
+      <span class="dot" style="background:${s.color}"></span>
+      <span class="shippedTitle">${escapeHtml(s.title)}</span>
+      <span class="shippedSize">${s.sizeKey}</span>
+      <span class="shippedTime">${timeAgo(s.shippedAt)}</span>
+    </div>`).join('');
+  list.querySelectorAll('.shippedRow').forEach(row=>{
+    row.addEventListener('click', ()=>{
+      const s = shippedLog[Number(row.dataset.idx)];
+      if(s) openDetail(s, s.shippedAt);
+    });
+  });
+}
+function escapeHtml(str){
+  const d = document.createElement('div'); d.textContent = str; return d.innerHTML;
+}
+
+// ---- controls ----
+let selectedSize = 'S';
+document.querySelectorAll('.size-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.size-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedSize = btn.dataset.size;
+  });
+});
+
+document.getElementById('addBtn').addEventListener('click', ()=>{
+  const titleEl = document.getElementById('titleInput');
+  const deadlineEl = document.getElementById('deadlineInput');
+  const linkEl = document.getElementById('linkInput');
+  const emailEl = document.getElementById('emailInput');
+  addTask(titleEl.value.trim(), selectedSize, deadlineEl.value, linkEl.value, emailEl.value);
+  titleEl.value=''; linkEl.value=''; emailEl.value='';
+});
+document.getElementById('titleInput').addEventListener('keydown',(e)=>{
+  if(e.key==='Enter') document.getElementById('addBtn').click();
+});
+
+document.getElementById('undoBtn').addEventListener('click', undoLast);
+
+const moreControls = document.getElementById('moreControls');
+document.getElementById('moreToggleBtn').addEventListener('click', ()=>{
+  moreControls.classList.toggle('open');
+});
+
+const shippedPanel = document.getElementById('shippedPanel');
+document.getElementById('viewShippedBtn').addEventListener('click', ()=>{
+  shippedPanel.classList.add('open');
+  refreshShippedPanel();
+});
+document.getElementById('closeShippedBtn').addEventListener('click', ()=>{
+  shippedPanel.classList.remove('open');
+});
+
+// seed a few example tasks
+addTask('Fix login bug', 'S', new Date().toISOString().slice(0,10));
+addTask('Client deck', 'M', new Date(Date.now()+3*86400000).toISOString().slice(0,10));
+addTask('Redesign onboarding', 'L', new Date(Date.now()+10*86400000).toISOString().slice(0,10));
+addTask('Q3 platform migration', 'XL', new Date(Date.now()+25*86400000).toISOString().slice(0,10));
+refreshShippedPanel();
+</script>
+</body>
+</html>
